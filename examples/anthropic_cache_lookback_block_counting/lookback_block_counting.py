@@ -29,12 +29,13 @@ Anthropic Prompt Caching の「ルックバックウィンドウ = 20ブロッ�
 結果は response.usage の cache_creation_input_tokens / cache_read_input_tokens
 で判定する（読み取りが発生していれば hit、発生していなければ miss）。
 """
+
 import os
 import uuid
 from pathlib import Path
 
-from dotenv import load_dotenv
 import anthropic
+from dotenv import load_dotenv
 
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
@@ -142,9 +143,7 @@ show("Turn2-B（検証: assistant content要素25個）", turn2_many_blocks)
 
 
 print("=== 判定 ===")
-print(
-    "Turn2-A cache_read>0 なら基本のルックバックが機能している証拠(ベースラインOK)。"
-)
+print("Turn2-A cache_read>0 なら基本のルックバックが機能している証拠(ベースラインOK)。")
 print(
     "Turn2-B で cache_read>0 のままなら「content配列は丸ごと1ブロック」、"
     "cache_read=0 (miss)になれば「配列内の要素は個別に1ブロックとしてカウントされる」。"

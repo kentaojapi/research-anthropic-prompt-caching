@@ -1,60 +1,32 @@
-"""Add request-local conversation cache points to Bedrock Converse requests."""
+"""Add conversation cache points immediately before each model call."""
 
-from copy import deepcopy
-from typing import Any, ClassVar
+from strands.hooks import BeforeModelCallEvent, HookProvider, HookRegistry
+from strands.types.content import Message
 
-from strands.models import BedrockModel
-from strands.types.content import Messages, SystemContentBlock
-from strands.types.tools import ToolChoice, ToolSpec
-from typing_extensions import override
+from cache_config import CacheTtl
 
 
-class ConversationHistoryCachePointBedrockModel(BedrockModel):
-    """Add cache points after Bedrock has normalized request messages."""
+class TurnBoundaryCachePointHook(HookProvider):
+    """Cache the previous and current model-call boundaries."""
 
-    CACHEABLE_MODEL_ID_PREFIXES: ClassVar[tuple[str, ...]] = (
-        "anthropic.claude-3-5-sonnet-",
-        "anthropic.claude-3-7-sonnet-",
-        "anthropic.claude-fable-5",
-        "anthropic.claude-haiku-4-5",
-        "anthropic.claude-mythos-5",
-        "anthropic.claude-opus-4-",
-        "anthropic.claude-opus-5",
-        "anthropic.claude-sonnet-4-",
-        "anthropic.claude-sonnet-5",
-    )
+    def __init__(self, ttl: CacheTtl = "5m") -> None:
+        self.ttl = ttl
 
-    @classmethod
-    def supports_conversation_history_caching(cls, model_id: str) -> bool:
-        """Return whether this Converse model accepts explicit cachePoint blocks."""
-        normalized_model_id = model_id.lower()
-        return any(prefix in normalized_model_id for prefix in cls.CACHEABLE_MODEL_ID_PREFIXES)
+    def register_hooks(self, registry: HookRegistry) -> None:
+        """Update the conversation history immediately before each model call."""
+        registry.add_callback(BeforeModelCallEvent, self.on_before_model_call)
 
-    @override
-    def format_request(
-        self,
-        messages: Messages,
-        tool_specs: list[ToolSpec] | None = None,
-        system_prompt_content: list[SystemContentBlock] | None = None,
-        tool_choice: ToolChoice | None = None,
-        dynamic_trailing_blocks: int = 0,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Format a request and cache its final two normalized messages when supported."""
-        request = super().format_request(
-            messages=messages,
-            tool_specs=tool_specs,
-            system_prompt_content=system_prompt_content,
-            tool_choice=tool_choice,
-            dynamic_trailing_blocks=dynamic_trailing_blocks,
-            **kwargs,
-        )
-        if not self.supports_conversation_history_caching(self.config["model_id"]):
-            return request
+    def on_before_model_call(self, event: BeforeModelCallEvent) -> None:
+        """Keep the previous call boundary and add the current call boundary."""
+        messages = event.agent.messages
+        previous_call_boundary: Message | None = None
+        for message in messages:
+            if any("cachePoint" in block for block in message["content"]):
+                previous_call_boundary = message
+            message["content"] = [block for block in message["content"] if "cachePoint" not in block]
 
-        request_messages = deepcopy(request["messages"])
-        for message in request_messages[-2:]:
-            message["content"].append({"cachePoint": {"type": "default"}})
-
-        request["messages"] = request_messages
-        return request
+        current_call_boundary = messages[-1] if messages else None
+        if previous_call_boundary is not None:
+            previous_call_boundary["content"].append({"cachePoint": {"type": "default", "ttl": self.ttl}})
+        if current_call_boundary is not None and current_call_boundary is not previous_call_boundary:
+            current_call_boundary["content"].append({"cachePoint": {"type": "default", "ttl": self.ttl}})
