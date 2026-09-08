@@ -10,11 +10,12 @@ system prompt 内に2つの明示的キャッシュブレークポイント (`ca
 参考:
 https://platform.claude.com/docs/ja/build-with-claude/prompt-caching
 """
+
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 import anthropic
+from dotenv import load_dotenv
 
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=ENV_PATH)

@@ -5,11 +5,12 @@
 先の回答で提示した messages 例が Anthropic API のスキーマバリデーションを
 通るかを実際にリクエストして確認するテストスクリプト。
 """
+
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 import anthropic
+from dotenv import load_dotenv
 
 # .env を読み込む（このファイルから見てリポジトリ直下の .env）
 ENV_PATH = Path(__file__).resolve().parents[2] / ".env"
@@ -27,7 +28,6 @@ messages = [
         "role": "user",
         "content": "東京の現在の天気を教えて。",
     },
-
     # 2. AIの出力：テキスト + tool_use（関数呼び出し）
     {
         "role": "assistant",
@@ -41,7 +41,6 @@ messages = [
             },
         ],
     },
-
     # 3. ユーザー側から返す tool_result
     {
         "role": "user",
@@ -49,27 +48,20 @@ messages = [
             {
                 "type": "tool_result",
                 "tool_use_id": "toolu_01A09q90qw90lq917835lq9",
-                "content": [
-                    {"type": "text", "text": '{"temp": 29, "condition": "晴れ"}'}
-                ],
+                "content": [{"type": "text", "text": '{"temp": 29, "condition": "晴れ"}'}],
             }
         ],
     },
-
     # 4. AIの最終出力
     {
         "role": "assistant",
-        "content": [
-            {"type": "text", "text": "東京は現在29℃、晴れです。"}
-        ],
+        "content": [{"type": "text", "text": "東京は現在29℃、晴れです。"}],
     },
-
     # 5. 追加のユーザー質問
     {
         "role": "user",
         "content": "明日の予定と天気も一緒に教えて。",
     },
-
     # 6. AIが複数tool_useを並列で呼ぶケース
     {
         "role": "assistant",
@@ -89,7 +81,6 @@ messages = [
             },
         ],
     },
-
     # 7. 複数tool_resultを1つのuserメッセージにまとめて返す
     {
         "role": "user",

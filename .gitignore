@@ -7,6 +7,9 @@ build/
 dist/
 *.egg-info/
 cache_layer_usage.jsonl
+blog.md
+anthropic_vs_openai_promptcaching.md
+.prompts/
 
 # Environment / secrets
 .env
