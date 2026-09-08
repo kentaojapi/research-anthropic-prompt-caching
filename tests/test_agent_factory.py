@@ -1,32 +1,35 @@
+from typing import Any
+
 import pytest
+from strands.models import BedrockModel
 
-from cache_hooks import ConversationHistoryCachePointBedrockModel
+import agent_factory
+from agent_factory import Tenant, build_agent
+from cache_config import PromptCacheConfig
+from cache_hooks import TurnBoundaryCachePointHook
 
 
-class TestConversationHistoryCachePointBedrockModel:
-    def test_formats_shared_and_tenant_prefixes_with_conversation_history_caching(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        monkeypatch.setenv("AWS_EC2_METADATA_DISABLED", "true")
-        model = ConversationHistoryCachePointBedrockModel(model_id="global.anthropic.claude-sonnet-5-test")
-        request = model.format_request(
-            messages=[
-                {"role": "user", "content": [{"text": "first"}]},
-                {"role": "assistant", "content": [{"text": "answer"}]},
-                {"role": "user", "content": [{"text": "second"}]},
-            ],
-            tool_specs=[
-                {"name": "shared_tool", "description": "shared", "inputSchema": {"json": {"type": "object"}}},
-                {"name": "tenant_tool", "description": "tenant", "inputSchema": {"json": {"type": "object"}}},
-            ],
-            system_prompt_content=[
-                {"text": "common prompt"},
-                {"cachePoint": {"type": "default", "ttl": "5m"}},
-                {"text": "tenant prompt"},
-                {"cachePoint": {"type": "default", "ttl": "5m"}},
-            ],
-        )
+def test_build_agent_uses_standard_bedrock_model_and_cache_hook(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent_arguments: dict[str, Any] = {}
 
-        assert sum("cachePoint" in block for block in request["toolConfig"]["tools"]) == 0
-        assert sum("cachePoint" in block for block in request["system"]) == 2
-        assert sum("cachePoint" in block for message in request["messages"] for block in message["content"]) == 2
+    def capture_agent_arguments(**kwargs: Any) -> dict[str, Any]:
+        agent_arguments.update(kwargs)
+        return kwargs
+
+    monkeypatch.setenv("AWS_EC2_METADATA_DISABLED", "true")
+    monkeypatch.setenv("BEDROCK_CLAUDE_SONNET_5_MODEL_ID", "global.anthropic.claude-sonnet-5-test")
+    monkeypatch.setattr(agent_factory, "Agent", capture_agent_arguments)
+
+    build_agent(
+        Tenant("billing", "You answer billing questions."),
+        past_messages=[],
+        cache=PromptCacheConfig(ttl="1h"),
+    )
+
+    assert type(agent_arguments["model"]) is BedrockModel
+    assert agent_arguments["model"].client.meta.region_name == "us-east-1"
+    assert len(agent_arguments["hooks"]) == 1
+    assert type(agent_arguments["hooks"][0]) is TurnBoundaryCachePointHook
+    assert agent_arguments["hooks"][0].ttl == "1h"

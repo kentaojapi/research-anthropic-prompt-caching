@@ -4,16 +4,11 @@ import os
 from dataclasses import dataclass
 
 from strands import Agent, tool
+from strands.models import BedrockModel
 from strands.types.content import Message
 
 from cache_config import PromptCacheConfig
-from cache_hooks import ConversationHistoryCachePointBedrockModel
-
-
-@tool
-def search_shared_help(query: str) -> str:
-    """Search shared product documentation."""
-    return f"Shared help for {query}"
+from cache_hooks import TurnBoundaryCachePointHook
 
 
 @tool
@@ -42,25 +37,31 @@ TENANTS = (
 )
 
 
-def build_agent(tenant: Tenant, past_messages: list[Message], cache: PromptCacheConfig) -> Agent:
+def build_agent(
+    tenant: Tenant,
+    past_messages: list[Message],
+    cache: PromptCacheConfig,
+    common_prompt: str = COMMON_PROMPT,
+) -> Agent:
     """Create one tenant's persistent agent and preserve its supplied history.
 
     Bedrock orders tools -> system -> messages. Therefore BP1 immediately
     after COMMON_PROMPT caches the fixed tools plus common instructions across
-    every tenant. BP2 then adds the tenant-specific instruction. The model
-    adds BP3/BP4 to the final two normalized request messages.
+    every tenant. BP2 then adds the tenant-specific instruction. The hook
+    keeps BP3 at the previous call boundary and moves BP4 to the current one.
     """
     model_id = os.environ["BEDROCK_CLAUDE_SONNET_5_MODEL_ID"]
     return Agent(
-        model=ConversationHistoryCachePointBedrockModel(model_id=model_id, max_tokens=512),
+        model=BedrockModel(model_id=model_id, region_name="us-east-1", max_tokens=512),
         system_prompt=[
-            {"text": COMMON_PROMPT},
+            {"text": common_prompt},
             {"cachePoint": {"type": "default", "ttl": cache.ttl}},
             {"text": tenant.prompt},
             {"cachePoint": {"type": "default", "ttl": cache.ttl}},
         ],
-        tools=[search_shared_help, look_up_tenant_data],
+        tools=[look_up_tenant_data],
         messages=past_messages,
+        hooks=[TurnBoundaryCachePointHook(cache.ttl)],
         callback_handler=None,
         load_tools_from_directory=False,
     )
