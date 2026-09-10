@@ -23,7 +23,7 @@
 `ANTHROPIC_API_KEY` をリポジトリ直下の `.env` に設定した上で、以下を実行:
 
 ```bash
-uv run examples/anthropic_messages_schema_check/test_messages.py
+uv run experiments/anthropic_messages_schema_check/test_messages.py
 ```
 
 スクリプト冒頭のPEP 723インラインメタデータ（`anthropic`, `python-dotenv`）

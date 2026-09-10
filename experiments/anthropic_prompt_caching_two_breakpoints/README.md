@@ -23,7 +23,7 @@
 ## 実行方法
 
 ```bash
-uv run examples/anthropic_prompt_caching_two_breakpoints/prompt_caching_two_breakpoints.py
+uv run experiments/anthropic_prompt_caching_two_breakpoints/prompt_caching_two_breakpoints.py
 ```
 
 `.env`（リポジトリ直下）に `ANTHROPIC_API_KEY` が必要。

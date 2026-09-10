@@ -1,10 +1,15 @@
 # Bedrock / Strands Agents Prompt Caching Validation
 
-このリポジトリは、Amazon Bedrock上のClaude Sonnet 5とStrands Agentsを使い、
+このリポジトリは技術ブログ用の検証コードとなります。
+
+Amazon Bedrock上のClaude Sonnet 5とStrands Agentsを使い、
 4層のPrompt Caching戦略を実際のAPI呼び出しで検証するための実験コードです。
 
 アプリケーションとして提供することは目的にしていません。キャッシュポイントの配置、
 会話履歴の引き継ぎ、Bedrockが返すトークン使用量を確認するための最小構成です。
+
+`experiments/` には、この構成へ至るまでに行った個別のAPI検証を置いています。
+ルートの検証コードとは独立した実験であり、READMEで説明する4層キャッシュ検証の実行対象には含めません。
 
 ## 検証するキャッシュ層
 
@@ -160,3 +165,4 @@ poetry run pytest
 | `test_cache_hit_rate.py` | Bedrockへ6リクエストを送り、4層の利用を実測する |
 | `run_cache_validation.sh` | `.env`を確認して検証スクリプトを実行する |
 | `tests/` | Hook、Agent生成、キャッシュ使用量の判定ロジックのテスト |
+| `experiments/` | 検証過程で行った個別のAPI実験 |

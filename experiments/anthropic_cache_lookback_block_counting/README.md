@@ -17,9 +17,9 @@ Anthropic Prompt Caching は、過去に書き込んだキャッシュエント�
 実行にはリポジトリ直下の`.env`に`ANTHROPIC_API_KEY`を設定する。
 
 ```bash
-uv run examples/anthropic_cache_lookback_block_counting/lookback_block_counting.py
-uv run examples/anthropic_cache_lookback_block_counting/contiguous_tool_blocks.py
-uv run examples/anthropic_cache_lookback_block_counting/strands_parallel_tool_lookback.py
+uv run experiments/anthropic_cache_lookback_block_counting/lookback_block_counting.py
+uv run experiments/anthropic_cache_lookback_block_counting/contiguous_tool_blocks.py
+uv run experiments/anthropic_cache_lookback_block_counting/strands_parallel_tool_lookback.py
 ```
 
 ## text blockの実験
